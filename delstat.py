@@ -6,6 +6,22 @@
 # delstat data file contains a record for each Carrier Route in every Zip Code in the US.
 # Statistics:  663,532 Carrier Routes in 41,235 zip codes in the Nov 2015 data file
 
+import os
+import os.path
+import argparse
+
+# get the inputs from the command line
+# > python delstat.py [inputfile]
+
+parser = argparse.ArgumentParser(description="Process the Delivery Statistics data from a USPS Address Information System Products file")
+parser.add_argument("delstatfile", help="the USPS delivery statistics text file")
+
+args = parser.parse_args()
+
+delstatfile = os.path.normpath(args.delstatfile) # input delstat file
+outputpath = os.path.dirname(delstatfile)  # write output file to the same directory as input
+
+
 def copyrightRecord(inputstring):
     """Takes a 309-byte Copyright Record from a delstat file (first line in the file)
     Returns the month and year of the file version (CD release month) as a string: MM-YY"""
@@ -126,14 +142,16 @@ def addRecords(zipcodes, fields):
 # dictionary of all unique zip codes
 zipcodes = {}
 
+# month and date of input file
+copyright = ""
+
 # Process the data file, 309 bytes at a time
 
-# input file
-delstat = r'C:\delstat\delstat.txt'
+print "working"
 
 recordCount = 0 # keep a running count of records in the input file
 
-with open(delstat, "rb") as data:  # read input file as binary
+with open(delstatfile, "rb") as data:  # read input file as binary
     copyright = copyrightRecord(data.read(309)) # store the month and year of the copyright
 
     record = data.read(309)
@@ -154,7 +172,21 @@ with open(delstat, "rb") as data:  # read input file as binary
         recordCount += 1
         record = data.read(309)
 
-# show results for testing purposes
-for z in iter(zipcodes):
-    print z, zipcodes[z]["ResActive"], zipcodes[z]["BusActive"]
-print "Records:", recordCount
+# write the output csv file to the same directory as the input file
+# name it using the copyright month-date
+
+outputfilename = os.path.join(outputpath, "summary_%s.csv" % copyright)
+
+summaryfile = open(outputfilename, 'w')
+
+# write CSV header
+summaryfile.write("ZIPCODE,RESIDENT,BUSINESS\n")
+
+# sort the zip codes and write the output lines
+for z in sorted(iter(zipcodes)):
+    summaryfile.write("{0},{1},{2}\n".format(z, zipcodes[z]["ResActive"], zipcodes[z]["BusActive"]))
+
+summaryfile.close()
+print "done"
+print "saved output at:", outputfilename
+print "total records processed:", recordCount
