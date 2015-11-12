@@ -1,19 +1,14 @@
+# Justin Johnson
+# USPS Delivery Statistics
+# November 2015
 
-
-# Processes the delstat data from a USPS Adress Information System Products file
-
-# input file
-# use a commandline parameter in production version
-
-delstat = r'C:\delstat\delstat.txt'
-
-data = open(delstat, "rb")  # read input file as binary
-data.read(309)
-
+# Processes the delstat data from a USPS Adress Information System Products file.
+# delstat data file contains a record for each Carrier Route in every Zip Code in the US.
+# Statistics:  663,532 Carrier Routes in 41,235 zip codes in the Nov 2015 data file
 
 def copyrightRecord(inputstring):
     """Takes a 309-byte Copyright Record from a delstat file (first line in the file)
-    Returns the month and year of the file version (CD release month) as a string [MM-YY]"""
+    Returns the month and year of the file version (CD release month) as a string: MM-YY"""
     
     return inputstring[19:24]
 
@@ -110,18 +105,62 @@ def detailRecord(inputstring):
     flist.append(inputstring[303:309])      #63 Preferred Last Line City State Key
     
     return flist
-    
-
-class ZipRecord:
-    fieldList = [0] * 64  #empty list of 64 items to store the 63 fields
-    
-    def setfield(self, fieldnumber, value):
-        self.fieldList[fieldnumber] = value
-    
-    def getfield(self, fieldnumber):
-        return self.fieldlist[fieldnumber]
 
 
-    
-    
-     
+def addRecords(zipcodes, fields):
+    """
+    zipcodes:  The dictionary containing the zip codes and each zip code's dictionary of aggregate values
+    fields: a record from the input file, processed into a list
+
+    Add the fields containing values for residential, business, and mixed deliveries to the current total for
+    a zip code.  These fields were selected from the previous MS Access script, way back when, and are maintained
+    here for consistency.
+    """
+    zipcode = fields[2]
+
+    zipcodes[zipcode]["ResActive"] += fields[18] + fields[19] + fields[20] + fields[21] + fields[22] + fields[23] + fields[24] + fields[25]
+    zipcodes[zipcode]["BusActive"] += fields[6] + fields[7] + fields[8] + fields[9] + fields[10] + fields[11] + fields[12] + fields[13]
+    zipcodes[zipcode]["MixedBusRes"] += fields[57]
+    zipcodes[zipcode]["MixedResBus"] += fields[58]
+
+
+# dictionary of all unique zip codes
+zipcodes = {}
+
+# dictionary to store the aggregated values for the relevant fields for each zip code
+ziprecords = {"ResActive": 0, "BusActive": 0, "MixedBusRes": 0, "MixedResBus": 0}
+
+
+
+# Process the data file, 309 bytes at a time
+
+# input file
+delstat = r'C:\delstat\delstat.txt'
+
+recordCount = 0 # keep a running count of records in the input file
+
+with open(delstat, "rb") as data:  # read input file as binary
+    copyright = copyrightRecord(data.read(309)) # store the month and year of the copyright
+
+    record = data.read(309)
+
+    while len(record) == 309:
+        fields = detailRecord(record)
+
+        zipcode = fields[2]
+
+        if zipcode in zipcodes:
+            # if the zip code has already been encountered, add the current set of records to its aggregate stats
+            addRecords(zipcodes, fields)
+        else:
+            # zip code hasn't been encountered, add it as a key in the zipcodes dictionary, and add
+            # a dictionary of aggregate statistics as the value
+            zipcodes[zipcode] = ziprecords
+
+
+        recordCount += 1
+        record = data.read(309)
+
+print "Records:", recordCount, ", Zip Codes:",
+for z in iter(zipcodes):
+    print z, zipcodes[z]["ResActive"], zipcodes[z]["BusActive"]
