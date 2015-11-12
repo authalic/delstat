@@ -182,9 +182,15 @@ summaryfile = open(outputfilename, 'w')
 # write CSV header
 summaryfile.write("ZIPCODE,RESIDENT,BUSINESS\n")
 
+# ArcGIS Workaround
+# Add dummy values to the first line of the CSV, so ArcMap knows which data types to use
+# Otherwise, the output zip codes get converted to integers and they won't join easily with the attributes
+# in the Zip Code feature class attribute table
+summaryfile.write("dummytext,0,0\n")
+
 # sort the zip codes and write the output lines
 for z in sorted(iter(zipcodes)):
-    summaryfile.write("{0},{1},{2}\n".format(z, zipcodes[z]["ResActive"], zipcodes[z]["BusActive"]))
+    summaryfile.write('"{0}",{1},{2}\n'.format(z, zipcodes[z]["ResActive"], zipcodes[z]["BusActive"]))
 
 summaryfile.close()
 print "done"
