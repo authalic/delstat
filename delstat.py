@@ -123,14 +123,8 @@ def addRecords(zipcodes, fields):
     zipcodes[zipcode]["MixedBusRes"] += fields[57]
     zipcodes[zipcode]["MixedResBus"] += fields[58]
 
-
 # dictionary of all unique zip codes
 zipcodes = {}
-
-# dictionary to store the aggregated values for the relevant fields for each zip code
-ziprecords = {"ResActive": 0, "BusActive": 0, "MixedBusRes": 0, "MixedResBus": 0}
-
-
 
 # Process the data file, 309 bytes at a time
 
@@ -155,12 +149,12 @@ with open(delstat, "rb") as data:  # read input file as binary
         else:
             # zip code hasn't been encountered, add it as a key in the zipcodes dictionary, and add
             # a dictionary of aggregate statistics as the value
-            zipcodes[zipcode] = ziprecords
-
+            zipcodes[zipcode] = {"ResActive": 0, "BusActive": 0, "MixedBusRes": 0, "MixedResBus": 0}
 
         recordCount += 1
         record = data.read(309)
 
-print "Records:", recordCount, ", Zip Codes:",
+# show results for testing purposes
 for z in iter(zipcodes):
     print z, zipcodes[z]["ResActive"], zipcodes[z]["BusActive"]
+print "Records:", recordCount
